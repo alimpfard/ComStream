@@ -1,5 +1,6 @@
 import concurrent.futures
 import multiprocessing
+from multiprocessing import Pool
 import scipy
 import pandas as pd
 import random
@@ -88,18 +89,19 @@ class Coordinator:
             self.agents[agent_id].remove_data_point(dp_id)
         del self.agents[agent_id]
 
-    def get_outliers(self, agent) -> []:
+    def get_outliers(self, agents) -> []:
         """
         getting outliers of agent
         :return: list of ids of outliers
         """
         outliers_id = []
-        for dp_id in agent.dp_ids:
-            dp = agent.coordinator.data_agent.data_points[dp_id]
-            distance = agent.generic_distance_function(dp.embedding_vec, agent.centroid)
-            if distance > agent.outlier_threshold:
-                agent.remove_data_point(dp_id, outlier=True)
-                outliers_id.append(dp_id)
+        for agent in agents:
+            for dp_id in agent.dp_ids:
+                dp = agent.coordinator.data_agent.data_points[dp_id]
+                distance = agent.generic_distance_function(dp.embedding_vec, agent.centroid)
+                if distance > agent.outlier_threshold:
+                    agent.remove_data_point(dp_id, outlier=True)
+                    outliers_id.append(dp_id)
         return outliers_id
 
     def handle_outliers(self) -> None:
@@ -108,15 +110,31 @@ class Coordinator:
         if there is another agent which is within the dps radius reassigns it, else creates a new agent for the dp
         :return: None
         """
+
         outliers_id = None
         agents = list(self.agents.values())
         if self.is_parallel:
-            with concurrent.futures.ProcessPoolExecutor(max_workers=multiprocessing.cpu_count() - 1) as executor:
-                outliers_id = sum(list(executor.map(self.get_outliers, agents)), [])
-        else:
-            for agent_id in self.agents:
-                self.agents[agent_id].get_outliers(outliers_id)
+            c = multiprocessing.cpu_count()
+            parts = int(len(agents) / c) + 1
+            temp_final = 0
+            if len(agents) % c:
+                temp_final = temp_final + 1
+            agents_list = []
+            for i in range(c):
+                if i == (c-1):
+                    agents_list.append(agents[i * parts:i * parts + temp_final])
+                else:
+                    agents_list.append(agents[i*parts:i*parts+parts])
 
+            with concurrent.futures.ProcessPoolExecutor(max_workers=c) as executor:
+                outliers_id = sum(list(executor.map(self.get_outliers, agents_list)), [])
+            # pool = Pool(processes=multiprocessing.cpu_count() - 1)
+            # outliers_id = sum(list(pool.map(self.get_outliers, agents)), [])
+        else:
+            outliers_id = []
+            for agent_id in self.agents:
+                outliers_id.append(self.agents[agent_id].get_outliers())
+            outliers_id = sum(outliers_id, [])
         agents_to_remove = []
         for agent_id in self.agents:
             if len(self.agents[agent_id].dp_ids) < 1:

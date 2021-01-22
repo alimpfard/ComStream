@@ -1,5 +1,5 @@
-from ComStream.ComStream.labse.Coordinator import Coordinator
-from ComStream.ComStream.labse.Utils import get_distance_cosine
+from .ComStream.labse.Coordinator import Coordinator
+from ComStream.labse.Utils import get_distance_cosine
 import os
 from pathlib import Path
 import time
@@ -9,9 +9,9 @@ if __name__ == '__main__':
     p = Path(__file__).parents[2]
     os.chdir(p)
     print(os.getcwd())
-    data_path = os.path.join('Data/FA_Preprocessed.pkl')  # The file must be pickle file :)
+    data_path = os.path.join('Data/sorted_FACUP.pkl')  # The file must be pickle file :)
 
-    embedding_file_path = os.path.join("Data/FA_Embedding.npy")
+    embedding_file_path = os.path.join("Data/FACUP_Embedding.npy")
     coordinator = Coordinator(
         init_no_agents=2,
         init_dp_per_agent=2,
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         generic_distance=get_distance_cosine,
         data_file_path=data_path,
         embedding_file_path=embedding_file_path,
-        dp_count=10000000,
+        dp_count=10000,
         verbose=1,
         is_parallel=False
     )
