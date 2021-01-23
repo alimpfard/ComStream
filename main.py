@@ -6,9 +6,9 @@ import time
 
 if __name__ == '__main__':
     start_time = time.time()
-    data_path = os.path.join('./Data/sorted_FACUP.pkl')  # The file must be pickle file :)
+    data_path = os.path.join('./Data/FA_Preprocessed.pkl')  # The file must be pickle file :)
 
-    embedding_file_path = os.path.join("./Data/FACUP_Embedding.npy")
+    embedding_file_path = os.path.join("./Data/FA_Embedding.npy")
     coordinator = Coordinator(
         init_no_agents=2,
         init_dp_per_agent=2,
@@ -24,9 +24,9 @@ if __name__ == '__main__':
         generic_distance=get_distance_cosine,
         data_file_path=data_path,
         embedding_file_path=embedding_file_path,
-        dp_count=10000,
+        dp_count=50000,
         verbose=1,
-        is_parallel=True
+        is_parallel=False
     )
     coordinator.train()
     end_time = time.time()

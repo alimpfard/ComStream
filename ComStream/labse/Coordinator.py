@@ -1,6 +1,5 @@
 import concurrent.futures
 import multiprocessing
-from multiprocessing import Pool
 import scipy
 import pandas as pd
 import random
@@ -100,8 +99,8 @@ class Coordinator:
                 dp = agent.coordinator.data_agent.data_points[dp_id]
                 distance = agent.generic_distance_function(dp.embedding_vec, agent.centroid)
                 if distance > agent.outlier_threshold:
-                    agent.remove_data_point(dp_id, outlier=True)
-                    outliers_id.append(dp_id)
+                    # agent.remove_data_point(dp_id, outlier=True)
+                    outliers_id.append((dp_id, agent.agent_id))
         return outliers_id
 
     def handle_outliers(self) -> None:
@@ -121,15 +120,18 @@ class Coordinator:
                 temp_final = temp_final + 1
             agents_list = []
             for i in range(c):
-                if i == (c-1):
+                if i == (c - 1):
                     agents_list.append(agents[i * parts:i * parts + temp_final])
                 else:
-                    agents_list.append(agents[i*parts:i*parts+parts])
+                    agents_list.append(agents[i * parts:i * parts + parts])
 
             with concurrent.futures.ProcessPoolExecutor(max_workers=c) as executor:
                 outliers_id = sum(list(executor.map(self.get_outliers, agents_list)), [])
             # pool = Pool(processes=multiprocessing.cpu_count() - 1)
             # outliers_id = sum(list(pool.map(self.get_outliers, agents)), [])
+            for dp_id, agent_id in outliers_id:
+                self.agents[agent_id].remove_data_point(dp_id, outlier=True)
+            outliers_id = [dp_id for dp_id, _ in outliers_id]
         else:
             outliers_id = []
             for agent_id in self.agents:
